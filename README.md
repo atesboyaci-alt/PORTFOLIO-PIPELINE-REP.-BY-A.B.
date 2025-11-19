@@ -1,7 +1,7 @@
 PORTFOLIO-PIPELINE-REP.-BY-A.B.
 REPOSITORY STRUCTURE
 
-WOMACK-STOCKS-REP.-BY-A.B./
+PORTFOLIO-PIPELINE-REP.-BY-A.B./
 │
 ├── main.py — Entry point to run the full project
 ├── requirements.txt — Python dependencies
