@@ -48,9 +48,9 @@ pip install -r requirements.txt
 ```
 
 ## 3. Run the full project
-
+```python
 python main.py
-
+```
 
 ## IMPORTANT — Replace the Placeholder Ticker List
 
@@ -59,9 +59,9 @@ Inside src/unified_portfolio.py, replace:
 tickers = ["AAPL", "MSFT", "GOOGL"]
 
 with the actual assignment list:
-
+```python
 tickers = ["AXP","AFL","BAC","COIN","BA","CAT","DAL", "FDX", "GD", "DD","PKG","LYB","IP","LIN"]
-
+```
 
 ## What IPOPT Does in This Project
 
