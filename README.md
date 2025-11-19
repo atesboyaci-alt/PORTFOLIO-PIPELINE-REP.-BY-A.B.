@@ -37,13 +37,15 @@ PORTFOLIO-PIPELINE-REP.-BY-A.B./
 ## Installation & Setup
 
 ## 1. Clone the repository
+```python
 git clone https://github.com/atesboyaci-alt/PORTFOLIO-PIPELINE-REP.-BY-A.B..git
 cd PORTFOLIO-PIPELINE-REP.-BY-A.B.
-
+```
 ## 2. Install dependencies
-
+```python
 pip install -r requirements.txt
 
+```
 
 ## 3. Run the full project
 
