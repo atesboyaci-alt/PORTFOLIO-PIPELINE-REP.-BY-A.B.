@@ -9,42 +9,29 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import seaborn as sns
 import yfinance as yf
-from pyomo.environ import *
+from pyomo.environ import (
+    ConcreteModel, Set, Var, NonNegativeReals, Objective, Constraint,
+    minimize, TerminationCondition
+)
+from pyomo.opt import SolverFactory
 
-# NOTE: in .py files we normally don't use !pip.
-# Instead, dependencies go in requirements.txt.
-# You can keep this block ONLY for Colab runs:
-if 'google.colab' in sys.modules:
-    # These lines only run inside Colab
+
+# NOTE: In .py files we don't use "!pip". Instead, dependencies go in
+# requirements.txt and are installed before running.
+# This block is ONLY for when you run this file inside Colab.
+if "google.colab" in sys.modules:
     os.system("pip install idaes-pse --pre")
     os.system("idaes get-extensions --to ./bin")
-    os.environ['PATH'] += ':./bin'
+    os.environ["PATH"] += ":./bin"
 
 
-def BDM_Project(tickers, start_date, end_date,
-                initial_return_range=(0.005, 0.03), step=0.001):
-    """
-    Your existing project function.
-
-    Copy the ENTIRE body of BDM_Project from the notebook
-    and paste it here, inside this function definition.
-    """
-    import sys
-import os
-
-if 'google.colab' in sys.modules:
-    !pip install idaes-pse --pre
-    !idaes get-extensions --to ./bin
-    os.environ['PATH'] += ':bin'
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
-import seaborn as sns
-import yfinance as yf
-from pyomo.environ import *
-
-def BDM_Project(tickers, start_date, end_date, initial_return_range=(0.005, 0.03), step=0.001):
+def BDM_Project(
+    tickers,
+    start_date,
+    end_date,
+    initial_return_range=(0.005, 0.03),
+    step=0.001,
+):
     """
     Downloads stock data, analyzes returns, and models efficient frontier until full concentration.
 
@@ -58,13 +45,21 @@ def BDM_Project(tickers, start_date, end_date, initial_return_range=(0.005, 0.03
     Returns:
     - Dictionary with returns, matrices, frontier, and allocation data
     """
+
     # === Step 1: Download and prepare data ===
     price_data = {}
     for t in tickers:
         try:
-            df = yf.download(t, start=start_date, end=end_date, interval="1d", progress=False, auto_adjust=False)
-            if not df.empty and 'Adj Close' in df.columns:
-                price_data[t] = df['Adj Close']
+            df = yf.download(
+                t,
+                start=start_date,
+                end=end_date,
+                interval="1d",
+                progress=False,
+                auto_adjust=False,
+            )
+            if not df.empty and "Adj Close" in df.columns:
+                price_data[t] = df["Adj Close"]
             else:
                 print(f"Warning: no valid data for {t}")
         except Exception as e:
@@ -84,29 +79,51 @@ def BDM_Project(tickers, start_date, end_date, initial_return_range=(0.005, 0.03
     # === Step 2: Return calculations ===
     daily_returns = prep_data.pct_change().dropna()
     log_returns = np.log(prep_data / prep_data.shift(1)).dropna()
-    monthly_returns = prep_data.resample('M').ffill().pct_change().dropna()
+    monthly_returns = (
+        prep_data.resample("M").ffill().pct_change().dropna()
+    )
     avg_return = monthly_returns.mean()
     cov_matrix = monthly_returns.cov()
     cor_matrix = monthly_returns.corr()
 
     # === Step 3: Visual diagnostics ===
     (1 + daily_returns).cumprod().plot(figsize=(15, 10))
-    plt.title('Cumulative Percentage Returns Over Time')
-    plt.xlabel('Date'); plt.ylabel('Cumulative Return'); plt.grid(True); plt.tight_layout(); plt.show()
+    plt.title("Cumulative Percentage Returns Over Time")
+    plt.xlabel("Date")
+    plt.ylabel("Cumulative Return")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
-    daily_returns.plot(subplots=True, grid=True, layout=(4, 4), figsize=(15, 15))
-    plt.suptitle('Daily Simple Returns'); plt.tight_layout(); plt.show()
+    daily_returns.plot(
+        subplots=True, grid=True, layout=(4, 4), figsize=(15, 15)
+    )
+    plt.suptitle("Daily Simple Returns")
+    plt.tight_layout()
+    plt.show()
 
-    monthly_returns.plot(figsize=(15, 6), title='Monthly Returns')
-    plt.grid(True); plt.tight_layout(); plt.show()
+    monthly_returns.plot(
+        figsize=(15, 6), title="Monthly Returns"
+    )
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
     plt.figure(figsize=(15, 12))
-    sns.heatmap(cov_matrix, annot=True, cmap='coolwarm', fmt=".4f", center=0)
-    plt.title('Covariance Matrix of Monthly Returns'); plt.tight_layout(); plt.show()
+    sns.heatmap(
+        cov_matrix, annot=True, cmap="coolwarm", fmt=".4f", center=0
+    )
+    plt.title("Covariance Matrix of Monthly Returns")
+    plt.tight_layout()
+    plt.show()
 
     plt.figure(figsize=(15, 12))
-    sns.heatmap(cor_matrix, annot=True, cmap='coolwarm', fmt=".4f", center=0)
-    plt.title('Correlation Matrix of Monthly Returns'); plt.tight_layout(); plt.show()
+    sns.heatmap(
+        cor_matrix, annot=True, cmap="coolwarm", fmt=".4f", center=0
+    )
+    plt.title("Correlation Matrix of Monthly Returns")
+    plt.tight_layout()
+    plt.show()
 
     # === Step 4: Optimization model builder ===
     def build_model(target_return):
@@ -115,19 +132,35 @@ def BDM_Project(tickers, start_date, end_date, initial_return_range=(0.005, 0.03
         m.x = Var(m.assets, domain=NonNegativeReals, bounds=(0, 1))
 
         def portfolio_variance(m):
-            return sum(m.x[i] * cov_matrix.loc[i, j] * m.x[j] for i in m.assets for j in m.assets)
+            return sum(
+                m.x[i] * cov_matrix.loc[i, j] * m.x[j]
+                for i in m.assets
+                for j in m.assets
+            )
+
         m.obj = Objective(rule=portfolio_variance, sense=minimize)
 
-        m.total_allocation = Constraint(expr=sum(m.x[i] for i in m.assets) == 1)
-        m.target_return = Constraint(expr=sum(m.x[i] * avg_return[i] for i in m.assets) >= target_return)
+        m.total_allocation = Constraint(
+            expr=sum(m.x[i] for i in m.assets) == 1
+        )
+        m.target_return = Constraint(
+            expr=sum(m.x[i] * avg_return[i] for i in m.assets)
+            >= target_return
+        )
 
         return m
 
     def solve_and_extract(m):
         SolverFactory("ipopt").solve(m)
         solution = {i: m.x[i].value for i in m.assets}
-        port_return = sum(solution[i] * avg_return[i] for i in m.assets)
-        port_variance = sum(solution[i] * cov_matrix.loc[i, j] * solution[j] for i in m.assets for j in m.assets)
+        port_return = sum(
+            solution[i] * avg_return[i] for i in m.assets
+        )
+        port_variance = sum(
+            solution[i] * cov_matrix.loc[i, j] * solution[j]
+            for i in m.assets
+            for j in m.assets
+        )
         port_risk = np.sqrt(port_variance)
         return solution, port_return, port_risk
 
@@ -140,23 +173,35 @@ def BDM_Project(tickers, start_date, end_date, initial_return_range=(0.005, 0.03
     while not max_concentration_reached and current_r <= max_r + 0.1:
         m = build_model(target_return=current_r)
         result = SolverFactory("ipopt").solve(m)
-        if result.solver.termination_condition != TerminationCondition.optimal:
+        if (
+            result.solver.termination_condition
+            != TerminationCondition.optimal
+        ):
             print(f"Skipping return target {current_r:.4f} — infeasible.")
             current_r += step
             continue
         try:
             solution, port_return, port_risk = solve_and_extract(m)
-            clean_weights = {t: solution.get(t, 0.0) or 0.0 for t in tickers}
-            results.append({
-                "target_return": current_r,
-                "actual_return": port_return,
-                "risk": port_risk,
-                "weights": clean_weights
-            })
+            clean_weights = {
+                t: solution.get(t, 0.0) or 0.0 for t in tickers
+            }
+            results.append(
+                {
+                    "target_return": current_r,
+                    "actual_return": port_return,
+                    "risk": port_risk,
+                    "weights": clean_weights,
+                }
+            )
 
             # Check for full concentration
-            nonzero_weights = [w for w in clean_weights.values() if w >= 0.01]
-            if len(nonzero_weights) == 1 and abs(nonzero_weights[0] - 1.0) < 0.01:
+            nonzero_weights = [
+                w for w in clean_weights.values() if w >= 0.01
+            ]
+            if (
+                len(nonzero_weights) == 1
+                and abs(nonzero_weights[0] - 1.0) < 0.01
+            ):
                 max_concentration_reached = True
         except Exception as e:
             print(f"Error at return {current_r:.4f}: {e}")
@@ -167,14 +212,26 @@ def BDM_Project(tickers, start_date, end_date, initial_return_range=(0.005, 0.03
         return None
 
     # === Step 6: Plot efficient frontier ===
-    frontier_df = pd.DataFrame(results).dropna().sort_values("risk")
+    frontier_df = (
+        pd.DataFrame(results)
+        .dropna()
+        .sort_values("risk")
+    )
     plt.figure(figsize=(8, 5))
-    plt.plot(frontier_df["risk"], frontier_df["actual_return"], marker='o', linestyle='-', color='blue')
+    plt.plot(
+        frontier_df["risk"],
+        frontier_df["actual_return"],
+        marker="o",
+        linestyle="-",
+        color="blue",
+    )
     plt.title("Efficient Frontier")
     plt.xlabel("Portfolio Risk (Standard Deviation)")
     plt.ylabel("Expected Return")
     plt.grid(True)
-    plt.gca().xaxis.set_major_formatter(mtick.FormatStrFormatter('%.3f'))
+    plt.gca().xaxis.set_major_formatter(
+        mtick.FormatStrFormatter("%.3f")
+    )
     plt.tight_layout()
     plt.show()
 
@@ -184,7 +241,10 @@ def BDM_Project(tickers, start_date, end_date, initial_return_range=(0.005, 0.03
         weights = {t: r["weights"].get(t, 0.0) for t in tickers}
         alloc_data.append(weights)
 
-    alloc_df = pd.DataFrame(alloc_data, index=[r["risk"] for r in results])
+    alloc_df = pd.DataFrame(
+        alloc_data,
+        index=[r["risk"] for r in results],
+    )
     alloc_df = alloc_df.sort_index()
 
     plt.figure(figsize=(12, 6))
@@ -194,8 +254,10 @@ def BDM_Project(tickers, start_date, end_date, initial_return_range=(0.005, 0.03
     plt.xlabel("Portfolio Risk (Standard Deviation)")
     plt.ylabel("Weight")
     plt.grid(True)
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.gca().xaxis.set_major_formatter(mtick.FormatStrFormatter('%.3f'))
+    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+    plt.gca().xaxis.set_major_formatter(
+        mtick.FormatStrFormatter("%.3f")
+    )
     plt.tight_layout()
     plt.show()
 
@@ -206,7 +268,7 @@ def BDM_Project(tickers, start_date, end_date, initial_return_range=(0.005, 0.03
         "covariance_matrix": cov_matrix,
         "correlation_matrix": cor_matrix,
         "efficient_frontier": frontier_df,
-        "allocations": alloc_df
+        "allocations": alloc_df,
     }
 
 
@@ -215,7 +277,8 @@ def run_unified_portfolio():
     Wrapper used by main.py to run the full project with your chosen settings.
     Adjust tickers/dates to whatever you used in the homework.
     """
-    tickers = ["AAPL", "MSFT", "GOOGL"]  # <- replace with your real Womack list
+    # TODO: replace this with your real Womack list:
+    tickers = ["AAPL", "MSFT", "GOOGL"]
     start_date = "2019-01-01"
     end_date = "2024-01-01"
 
