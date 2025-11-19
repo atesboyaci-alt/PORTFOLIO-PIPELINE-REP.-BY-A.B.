@@ -1,104 +1,113 @@
-PORTFOLIO-PIPELINE-REP.-BY-A.B.
+## PORTFOLIO-PIPELINE-REP.-BY-A.B.
+A complete portfolio optimization pipeline using Pyomo, IPOPT, and automated return analysis.
 
-This repository implements a unified portfolio optimization pipeline that retrieves historical stock data, computes return metrics, constructs covariance and correlation matrices, and generates an efficient frontier using Pyomo and IPOPT. The project follows a clean and modular Python structure consistent with course standards.
+## Overview
 
-REPOSITORY STRUCTURE
+This repository contains a fully structured portfolio optimization project designed to:
+
+Download historical stock prices
+
+Compute daily, log, and monthly returns
+
+Build return/covariance/correlation matrices
+
+Generate an efficient frontier
+
+Solve quadratic optimization models using IPOPT
+
+Visualize allocation behavior as target returns increase
+
+Automatically stop when the portfolio becomes fully concentrated
+
+The project is built as a clean Python package, following the same organizational style used in high-quality data-science codebases 
+
+## Repository Structure
 
 PORTFOLIO-PIPELINE-REP.-BY-A.B./
-|
-|-- main.py # Entry point for the full pipeline
-|-- requirements.txt # Required Python packages
-|-- README.md # Project documentation
-|
-|-- src/
-| |-- unified_portfolio.py # Core optimization and analysis module
-|
-|-- Unified Portfolio Code A.B..ipynb # Original notebook (reference only)
+│
+├── main.py                        # Entry point to run the full project
+├── requirements.txt               # All required Python dependencies
+├── README.md                      # This documentation
+│
+├── src/
+│   └── unified_portfolio.py       # Core portfolio optimization engine (Pyomo + IPOPT)
+│
+└── Unified Portfolio Code A.B..ipynb   # Original notebook (reference only)
 
-CLONE THE REPOSITORY
+## Installation & Setup
 
+## 1. Clone the repository
 git clone https://github.com/atesboyaci-alt/PORTFOLIO-PIPELINE-REP.-BY-A.B..git
-
 cd PORTFOLIO-PIPELINE-REP.-BY-A.B.
 
-INSTALL DEPENDENCIES
+## 2. Install dependencies
 
 pip install -r requirements.txt
 
-RUN THE PIPELINE
+
+## 3. Run the full project
 
 python main.py
 
-Running the pipeline performs the following:
 
-Downloads historical prices for selected tickers
+## IMPORTANT — Replace the Placeholder Ticker List
 
-Computes daily, log, and monthly return series
-
-Constructs covariance and correlation matrices
-
-Generates diagnostic visualizations
-
-Builds and solves a portfolio optimization model using Pyomo and IPOPT
-
-Traces the efficient frontier over increasing required returns
-
-Produces allocation profiles across the risk spectrum
-
-TICKER CONFIGURATION
-
-Inside src/unified_portfolio.py, update the base ticker list. Replace:
+Inside src/unified_portfolio.py, replace:
 
 tickers = ["AAPL", "MSFT", "GOOGL"]
 
-with the Womack stock list:
+with the actual assignment list:
 
-tickers = ["AXP", "AFL", "BAC", "COIN", "BA", "CAT",
-"DAL", "FDX", "GD", "DD", "PKG", "LYB",
-"IP", "LIN"]
+tickers = ["AXP","AFL","BAC","COIN","BA","CAT","DAL", "FDX", "GD", "DD","PKG","LYB","IP","LIN"]
 
-OPTIMIZATION MODEL DETAILS
 
-The optimization model seeks the minimum-variance portfolio that satisfies a required expected return. IPOPT is used as the nonlinear solver.
+## What IPOPT Does in This Project
 
-Objective:
+IPOPT (Interior Point OPTimizer) solves nonlinear constrained optimization problems.
+In this project, IPOPT computes the minimum-variance portfolio for a required return target.
 
-Minimize xᵀ Σ x
+## Optimization Model
+min 𝑥⊤Σ𝑥
 
-Subject to:
+Subject to;
 
-Σ x_i = 1
-Σ x_i * μ_i ≥ target_return
-x_i ≥ 0
+i∑​xi​=1
+i∑​xi​μi​ ≥ target return
+xi​ ≥ 0
 
-IPOPT provides:
+## IPOPT’s Role
 
-Feasible optimal weights for each return level
+Efficiently solves quadratic programs
 
-Portfolio variance and standard deviation values
+Ensures valid, feasible allocations
 
-A full set of frontier points for visualization
+Handles constraints cleanly and quickly
 
-Automatic termination when a fully concentrated portfolio is reached
+Allows sweeping return targets in small increments
 
-The model is solved iteratively across increasing target returns to construct the efficient frontier.
+Stops when the portfolio becomes fully concentrated (only 1 asset at weight ≈ 1)
 
-GOOGLE COLAB EXECUTION
+This is what makes the adaptive frontier generation possible.
 
-The script includes automatic handling for Colab environments:
+## Running in Google Colab
+
+This repository includes automatic Colab detection.
+
+If the code is run inside Google Colab:
 
 Installs idaes-pse
 
-Retrieves IPOPT binaries
+Downloads IPOPT binaries
 
-Updates PATH to include solver executables
+Adds ./bin to PATH
 
-Ensures Pyomo and IPOPT run without local installation
+Runs identically to local execution
 
-No additional configuration is required when using Colab.
+No manual setup required.
 
-AUTHOR
+## Author
 
 Ates Boyaci
-Portfolio Pipeline Project — Fall 2025
-Instructor: Prof. Wanik
+Portfolio Optimization Pipeline — Fall 2025
+
+
